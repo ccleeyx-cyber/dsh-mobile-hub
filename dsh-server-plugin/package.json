@@ -58,7 +58,7 @@
     "name": "手机远程访问（DSH Mobile Bridge）",
     "category": "tools",
     "bundle": {
-      "patch": "./patches/bundle.yaml"
+      "patch": "patches/bundle.yaml"
     },
     "client": {
       "inject": [
