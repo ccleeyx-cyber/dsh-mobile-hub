@@ -87,7 +87,14 @@ test('插件包：市场元数据齐全', () => {
 
 test('插件包：files 覆盖运行时产物（npm 发布不会漏文件）', () => {
   assert.ok(Array.isArray(pkg.files), 'files 必须是数组');
-  for (const required of ['lib', 'LICENSE', 'README.md', pkg.dsh.bundle.patch.replace(/^\.\//, '')]) {
+  // bundle patch 的覆盖判定：files 里出现「精确路径」或「包含它的目录条目」都算。
+  // （Hub 规范路径是 patches/bundle.yaml，files 用目录条目 patches 覆盖它；
+  //   也兼容旧的精确文件条目写法。）
+  const patchRel = pkg.dsh.bundle.patch.replace(/^\.\//, '');
+  const patchCovered = pkg.files.includes(patchRel)
+    || pkg.files.some((f) => patchRel.startsWith(`${f}/`));
+  assert.ok(patchCovered, `files 里没有覆盖 ${patchRel}（精确路径或所在目录条目）`);
+  for (const required of ['lib', 'LICENSE', 'README.md']) {
     assert.ok(pkg.files.includes(required), `files 里缺 ${required}`);
   }
 });

@@ -1,14 +1,26 @@
-# dsh-mobile
+# dsh-mobile-hub
 
 DeepSeek Harness（DSH）的手机端控制台 + 配套网关插件。
 
+> **本仓是 [DeepSeek Harness Hub](https://deepseek.stream) 的发布版**（公开），
+> 按 Hub 插件规范组织，插件入口见
+> [`dsh-server-plugin/patches/bundle.yaml`](dsh-server-plugin/patches/bundle.yaml)。
+> 主开发仓库为私有仓 `ccleeyx-cyber/dsh-mobile`，两边同步发布；如仅关心插件本身，
+> Hub 导入时填插件子目录 `dsh-server-plugin`。
+
 ```
 dsh_mobile/          Flutter Android 客户端（本仓库的主体）
-dsh-server-plugin/   Node.js 网关插件，跑在 DSH 宿主机上
+dsh-server-plugin/   Node.js 网关插件，跑在 DSH 宿主机上（Hub 上架单元）
 tests/               网关插件的测试（node --test），分层见 docs/TESTING.md
-scripts/             手动工具：等 APK 构建产物、读 APK 版本号
+scripts/             手动工具：等 APK 构建产物、读 APK 版本号、插件打包
 docs/                测试分层说明（TESTING.md）
 docs/archive/        历史设计与排查记录（只作证据，描述的状态可能已修复）
+```
+
+给插件打可上架的 ZIP（根目录即 package.json，排 node_modules）：
+
+```bash
+node scripts/pack-plugin.mjs
 ```
 
 ---

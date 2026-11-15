@@ -1,0 +1,14 @@
+# DeepSeek Harness Hub 插件规范的 bundle patch 文件。
+#
+# 内容与同目录的 cordis.patch.yml 完全一致（宿主 Cordis 模式的声明），
+# 只是为满足 Hub 的路径约定（package.json 的 dsh.bundle.patch 必须指向
+# patches/bundle.yaml）。两个文件保持同步修改。
+#
+# ⚠️ 刻意**不写** inject（完整推理见 cordis.patch.yml 内注释）：声明 inject
+# 会让 Cordis 把 apply 推迟到服务就绪之后，而 connection 依赖的 webRuntime
+# 是 webserver 绑定端口之后才 provide 的，结果 apply 排不上队、设置页 RPC
+# 全部 405。真正的处理在 lib/index.js：ctx.webServer 走 try/catch 可选探测，
+# 不依赖 inject，也就不会被推迟执行。
+- insert:
+    - id: dsh-mobile-access
+      name: dsh-mobile-access

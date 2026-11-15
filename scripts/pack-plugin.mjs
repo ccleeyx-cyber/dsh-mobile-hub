@@ -24,6 +24,7 @@ const pluginDir = path.join(repoRoot, 'dsh-server-plugin');
 
 const INCLUDED = [
   'package.json',
+  'patches',
   'cordis.patch.yml',
   'README.md',
   'LICENSE',
