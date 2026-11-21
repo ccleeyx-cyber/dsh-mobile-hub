@@ -7,39 +7,43 @@
 
 ---
 
-## [1.17.1] - 2026-11-20
+## [1.39.16] - 2026-11-21
 
-### 修复：手机端会话历史全空（两个叠在一起的网关 bug）
+### 修复：手机端打开会话只有标题、没有任何消息
 
-现象：手机上打开会话只看到标题，**里面一条消息都没有**。
+现象：手机上点进会话只看到标题，**里面一条消息都没有**。
 `GET /api/mobile/sessions/history/page` 返回
-`{"messages":[],"hasMore":false,"oldestSeq":null}`，HTTP **200**、不报错。
+`{"messages":[],"hasMore":false,"oldestSeq":null}` —— HTTP **200**、不报错，
+所以从 App 侧看完全像"同步失败"，实际是网关根本没把历史读出来。
 
-1. **引擎游标报错文案换代**：插件用 `/past cursor (\d+)/` 从引擎的拒绝信息里抠
+根因是两个叠在一起的网关 bug，**症状一模一样，只修一个不够**：
+
+1. **引擎游标报错文案换代**：网关用 `/past cursor (\d+)/` 从引擎的拒绝信息里抠
    会话游标，而当前引擎已改成 `session history cut N exceeds M`。正则不匹配 →
-   回 null → `readHistoryPage` 认为拿不到游标，直接返回空页。数据完好躺在
+   回 null → 历史页直接返回空。数据完好躺在
    `~/.dsh/sessions/<key>/<id>/session.v4.jsonl.zstd` 里，只是没人读得出来。
    现同时认两种文案；第二条要求带 `history/cut/seq` 上下文，避免把
    `response exceeds 1048576 bytes` 这类无关错误的数字当成游标（错的游标会让
-   历史从中间截断，比空页面更难发现）。
-2. **引擎端口静默回落到 3080**：`inject = ['connection']` 没有注入 `webServer`，
+   历史从中间截断，比空页面更难被发现）。
+2. **引擎端口静默回落到 3080**：插件 `inject = ['connection']` 没有注入 `webServer`，
    `ctx.webServer?.port` 一读就抛（cordis 的 ctx 是 Proxy），被 try/catch 吞掉 →
-   端口回落到写死的 3080。旧版 DSH 引擎恰好固定在 3080 所以没显形；**桌面版 DSH
-   的引擎端口是动态的**（实测 50760 / 60940 / 61400），3080 上无人监听 → 所有
-   `callDshRpc` 连接被拒 → 历史、交付物、队列全部静默为空。而
-   `/api/mobile/workspaces` 读的是磁盘投影快照、不走 RPC，所以会话标题照常显示，
-   极易误判成 App 的同步问题。
+   端口回落到写死的 3080。旧版 DSH 引擎恰好固定在 3080 所以长期没显形；
+   **桌面版 DSH 的引擎端口是动态的**（实测 50760 / 60940 / 61400），3080 上无人监听
+   → 所有 `callDshRpc` 连接被拒 → 历史、交付物列表、队列全部静默为空。
+   而 `/api/mobile/workspaces` 读的是引擎写在磁盘上的投影快照、**不走 RPC**，
+   所以会话标题照常显示 —— 这就是它极易被误判成 App 同步问题的原因。
 
-   现改回 `inject = ['connection', 'webServer']`（同一份 DSH 里的 dsh-pocket-fork /
-   dsh-genui 均如此且工作正常），并新增 `cfg.dshPort` 逃生口
-   （`~/.dsh/mobile-bridge/config.json`），端口回落时打 warn 日志。
+   修法：`inject` 改回 `['connection', 'webServer']`（同一份 DSH 里的
+   dsh-pocket-fork / dsh-genui 均如此且工作正常）；新增 `cfg.dshPort` 逃生口
+   （`~/.dsh/mobile-bridge/config.json`），端口回落时打 warn 而不再静默。
 
-> 两个 bug 症状完全一致（空历史 + HTTP 200 + 不报错），修掉任一个都不够 ——
-> 这也是为什么只修第一个之后"看起来该好了"却仍然没消息。
+### 网关 1.17.0 → 1.17.1
 
-### 其它
+上述两个修复随本次客户端一起发布。另新增回归测试，锁死新旧两种游标报错文案，
+并覆盖"无关错误不许误判"。
 
-- 新增回归测试锁死新旧两种游标报错文案，并覆盖"无关错误不许误判"。
+> 受影响的功能不止会话历史：交付物扫描复用同一个游标解析函数，所以那段时间
+> **每个会话的交付物列表也是空的**；一切依赖引擎 RPC 的面板（队列等）同样为空。
 
 ## [1.39.15] - 2026-10-31
 
